@@ -4,6 +4,12 @@ const monk = require('monk');
 //connects to the database
 const db = monk(process.env.MONGO_URI);
 const faqs = db.get('faqs')
+const Joi = require('@hapi/Joi');
+
+const schema = Joi.object({
+    question: Joi.string().trim().required(),
+    answer: Joi.string().trim().required(),
+});
 
 const router = express.Router();
 
@@ -18,31 +24,66 @@ router.get('/', async (req, res, next) => {
 });
 
 //READ ONE 
-router.get('/:id', (req, res, next) => {
-    res.json({
-        message: 'Hello read one!'
-    })
+router.get('/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const item = await faqs.findOne({
+            _id: id,
+        });
+        if(!item) return next();
+        return res.json(item);
+
+    } catch (error) {
+      next(error)  
+    }
 });
 
 //CREATE ONE 
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
+    try {
+        const value = await schema.validateAsync(req.body);
+        const inserted = await faqs.insert(value);
+        res.json(inserted);
+    } catch (error) {
+        next(error);
+    }
     res.json({
-        message: 'Hello create one!'
     })
 });
 
 //UPDATE ONE 
-router.put('/:id', (req, res, next) => {
+router.put('/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const value = await schema.validateAsync(req.body);
+        const item = await faqs.findOne({
+            _id: id
+        });
+        if(!item) return next();
+        const updated = await faqs.update({
+            _id: id
+        }, {
+            $set: value
+        });
+        res.json(value);
+    } catch (error) {
+        next(error);
+    }
     res.json({
-        message: 'Hello update one!'
     })
 });
 
 //DELETE ONE 
-router.delete('/:id', (req, res, next) => {
-    res.json({
-        message: 'Hello delete one!'
-    })
+router.delete('/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await faqs.remove({_id: id});
+        res.json({
+            message: 'Success'
+        });
+    }catch(error){
+        next(error);
+    }
 });
 
 module.exports = router;
