@@ -60,7 +60,7 @@ router.put('/:id', async (req, res, next) => {
             _id: id
         });
         if(!item) return next();
-        const updated = await faqs.update({
+        await faqs.update({
             _id: id
         }, {
             $set: value
